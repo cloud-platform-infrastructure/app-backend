@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-config
+  namespace: backend-dev
+data:
+  REQUIRE_SLACK: "true"
+  AWS_REGION: "us-east-1"
+  DYNAMODB_TABLE: "slack-enterprise-study-dev-use1-logs"
