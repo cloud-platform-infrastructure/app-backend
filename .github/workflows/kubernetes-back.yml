@@ -1,0 +1,50 @@
+name: Kubernetes Backend
+
+on:
+  push:
+    paths:
+      - "k8s/**"
+  pull_request:
+    paths:
+      - "k8s/**"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  k8s-ci:
+    name: K8s CI (reuse platform-infra)
+    uses: cloud-platform-infrastructure/platform-infra/.github/workflows/kubernetes-infra.yml@main
+    with:
+      k8s_root: "k8s"
+      k8s_base_dir: "k8s/base"
+      k8s_overlay_dirs: "k8s/overlays/dev k8s/overlays/staging k8s/overlays/prod"
+      yamllint_ignore: "k8s/**/charts/**"
+      helm_version: "v3.14.4"
+      kubectl_version: "v1.29.0"
+
+  deploy:
+    needs: k8s-ci
+    if: github.ref == 'refs/heads/main'
+
+    permissions:
+      id-token: write
+      contents: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # For now we only deploy staging. In the future, add: [dev, prod]
+        env: [staging]
+
+    uses: cloud-platform-infrastructure/deploy-workflows/.github/workflows/deploy.yml@main
+    with:
+      env_name: ${{ matrix.env }}
+      service_name: backend
+      image_tag: KEEP_CURRENT_IMAGE
+      namespace: backend-${{ matrix.env }}
+      deployment_name: backend
+      container_name: backend
+    secrets: inherit
