@@ -83,6 +83,7 @@ jobs:
   app-cd:
     name: App CD (push image + trigger deploy)
     runs-on: ubuntu-latest
+    environment: ${{ matrix.env }}
     needs: app-ci
 
     strategy:
@@ -122,25 +123,15 @@ jobs:
           SHORT_SHA="${GITHUB_SHA::7}"
           echo "tag=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
 
-      - name: Select AWS role to assume (by environment)
+      - name: Select AWS role to assume
         id: aws-role
         run: |
           set -euo pipefail
-          case "${ENV_NAME}" in
-            staging)
-              echo "arn=${{ secrets.AWS_ROLE_ARN_APP_STAGING }}" >> "$GITHUB_OUTPUT"
-              ;;
-            dev)
-              echo "arn=${{ secrets.AWS_ROLE_ARN_APP_DEV }}" >> "$GITHUB_OUTPUT"
-              ;;
-            prod)
-              echo "arn=${{ secrets.AWS_ROLE_ARN_APP_PROD }}" >> "$GITHUB_OUTPUT"
-              ;;
-            *)
-              echo "Unknown ENV_NAME=${ENV_NAME}" >&2
-              exit 1
-              ;;
-          esac
+          if [ -z "${{ secrets.AWS_ROLE_ARN }}" ]; then
+            echo "Missing required secret: AWS_ROLE_ARN (expected in GitHub Environment '${ENV_NAME}')" >&2
+            exit 1
+          fi
+          echo "arn=${{ secrets.AWS_ROLE_ARN }}" >> "$GITHUB_OUTPUT"
 
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
