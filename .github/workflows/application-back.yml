@@ -159,6 +159,7 @@ jobs:
   deploy:
     name: Deploy (reusable workflow)
     needs: app-cd
+    environment: ${{ needs.app-cd.outputs.env_name }}
     if: github.ref == 'refs/heads/main'
 
     permissions:
